@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Text;
 using UnityEngine;
 
 public class JsonUtilityFileManager : MonoBehaviour
@@ -68,26 +69,17 @@ public class JsonUtilityFileManager : MonoBehaviour
         }
     }
 
-    /// <summary>
-    /// 初始化逻辑
-    /// </summary>
     private void Initialize()
     {
         Debug.Log("JsonUtilityFileManager Initialized.");
+
+        Init();
     }
     #endregion
 
     [SerializeField] private string folderPath;
     [SerializeField] List<TestData> m_TestDataList = new List<TestData>();
-    //[SerializeField] private List<NetworkData> m_NetworkDataList = new List<NetworkData>();
-    //[SerializeField] private List<SheXiangTouData> m_SheXiangTouDataList = new List<SheXiangTouData>();
 
-
-
-    void Start()
-    {
-        Init();
-    }
 
 
     public void Init()
@@ -116,17 +108,6 @@ public class JsonUtilityFileManager : MonoBehaviour
                         m_TestDataList.AddRange(JsonUtilityArray<TestData>(content));
                         Debug.Log($"加载 {m_TestDataList.Count} 个 {dataType} 条目。");
                         break;
-                        
-                    //case "NetworkData":
-                    //    m_NetworkDataList.AddRange(JsonUtilityArray<NetworkData>(content));
-                    //    Debug.Log($"Loaded {m_NetworkDataList.Count} NetworkData entries.");
-                    //    break;
-
-                    //case "SheXiangTouData":
-                    //    m_SheXiangTouDataList.AddRange(JsonUtilityArray<SheXiangTouData>(content));
-                    //    Debug.Log($"Loaded {m_SheXiangTouDataList.Count} SheXiangTouData entries.");
-                    //    break;
-
                     default:
                         Debug.LogWarning($"Unsupported data type {dataType}");
                         break;
@@ -139,15 +120,8 @@ public class JsonUtilityFileManager : MonoBehaviour
         }
     }
 
-    /// <summary>
-    /// 自定义解析 JSON 数组的方法
-    /// </summary>
-    private List<T> JsonUtilityArray<T>(string json)
-    {
-        string wrappedJson = $"{{ \"data\": {json} }}"; // 包装成对象
-        Wrapper<T> wrapper = JsonUtility.FromJson<Wrapper<T>>(wrappedJson);
-        return wrapper.data;
-    }
+
+
 
     #region GetDataList
 
@@ -155,24 +129,90 @@ public class JsonUtilityFileManager : MonoBehaviour
     {
         return new List<TestData>(m_TestDataList);
     }
-    //public List<NetworkData> GetNetworkDataList()
-    //{
-    //    return new List<NetworkData>(m_NetworkDataList);
-    //}
-
-    //public List<SheXiangTouData> GetSheXiangTouDataList()
-    //{
-    //    return new List<SheXiangTouData>(m_SheXiangTouDataList);
-    //}
 
     #endregion
 
 
+
+
+    #region Json
 
     [Serializable]
     private class Wrapper<T>
     {
         public List<T> data;
     }
+
+    private List<T> JsonUtilityArray<T>(string json)
+    {
+        string wrappedJson = $"{{ \"data\": {json} }}"; // 包装成对象
+        Wrapper<T> wrapper = JsonUtility.FromJson<Wrapper<T>>(wrappedJson);
+        return wrapper.data;
+    }
+    public byte[] JsonToByteArray<T>(T message)
+    {
+        string jsonString = JsonUtility.ToJson(message);
+        //print($"JsonToByteArray : {jsonString}");
+        return Encoding.UTF8.GetBytes(jsonString);
+    }
+    public T ByteArrayToJson<T>(byte[] data)
+    {
+        string jsonString = Encoding.UTF8.GetString(data);
+        //print($"ByteArrayToJson : {jsonString}");
+        return JsonUtility.FromJson<T>(jsonString);
+    }
+
+    public void SaveDataToFile<T>(List<T> dataList, string filePath)
+    {
+        try
+        {
+            string directoryPath = Path.GetDirectoryName(filePath);
+            if (!Directory.Exists(directoryPath))
+            {
+                Directory.CreateDirectory(directoryPath);
+                Debug.Log($"目录 {directoryPath} 已创建");
+            }
+
+            if (!File.Exists(filePath))
+            {
+                File.Create(filePath).Close(); // 创建空文件
+                Debug.Log($"文件 {filePath} 已创建");
+            }
+
+
+            StringBuilder jsonStringBuilder = new StringBuilder();
+            jsonStringBuilder.Append("[\n");
+            for (int i = 0; i < dataList.Count; i++)
+            {
+                string jsonString = JsonUtility.ToJson(dataList[i], true);
+                //Debug.Log($"序列化 JSON: {jsonString}");
+
+                // 如果不是最后一个元素，添加逗号
+                if (i < dataList.Count - 1)
+                {
+                    jsonStringBuilder.Append(jsonString + ",\n");
+                }
+                else
+                {
+                    jsonStringBuilder.Append(jsonString + "\n");
+                }
+            }
+            jsonStringBuilder.Append("]");
+            string finalJson = jsonStringBuilder.ToString();
+
+            File.WriteAllText(filePath, finalJson);
+
+            Debug.Log($"数据已保存到 {filePath} \n{finalJson}");
+
+        }
+        catch (Exception ex)
+        {
+            Debug.LogError($"保存数据时发生错误：{ex.Message}");
+        }
+    }
+
+
+    #endregion
+
 
 }

@@ -4,5 +4,8 @@
 EditorBuildSettings:
   m_ObjectHideFlags: 0
   serializedVersion: 2
-  m_Scenes: []
+  m_Scenes:
+  - enabled: 1
+    path: Assets/Scenes/Test__Excel/Test__Excel.unity
+    guid: f52e8e0d469cbbf4cb9d2f0ce2ed47d6
   m_configObjects: {}
